@@ -91,7 +91,7 @@ public class Brain<E extends LivingEntity> {
 	private Schedule schedule = Schedule.EMPTY;
 	//存储每个活动所需的内存状态
 	//Key:活动
-	//Value:该活动所需的内存类型及其状态
+	//Value:该活动所需的记忆类型及其状态
 	private final Map<Activity, Set<Pair<MemoryModuleType<?>, MemoryModuleState>>> requiredActivityMemories = Maps.<Activity, Set<Pair<MemoryModuleType<?>, MemoryModuleState>>>newHashMap();
 	/**
 	 * The map from activities to the memories to forget after the activity is
@@ -112,7 +112,7 @@ public class Brain<E extends LivingEntity> {
 
 
 	/**
-	 * 工厂方法createProfile,
+	 * 工厂方法createProfile
 	 * @param memoryModules Collection,包含记忆类型
 	 * @param sensors Collection,包含传感器类型
 	 * @return Brain.Profile<E>对象
@@ -126,7 +126,7 @@ public class Brain<E extends LivingEntity> {
 	}
 
 	/**
-	 *
+	 * 创建大脑Codec
 	 * @param memoryModules Collection,包含记忆类型
 	 * @param sensors Collection,包含传感器类型
 	 * @return Codec<Brain<E>>,用于反序列化Brain<E>
@@ -160,7 +160,7 @@ public class Brain<E extends LivingEntity> {
 					}
 
 					/**
-				 	* MapLike<T>解码为Brain<E> 反序列化
+				 	* 将原始数据解码为 Brain<E> 对象
 				 	* @param ops
 				 	* @param map
 				 	* @return Brain<E>
@@ -186,7 +186,7 @@ public class Brain<E extends LivingEntity> {
 					}
 
 				/**
-				 *
+				 * 解析单个记忆模块的值
 				 * @param memoryType
 				 * @param ops
 				 * @param value
@@ -194,14 +194,22 @@ public class Brain<E extends LivingEntity> {
 				 * @param <T>
 				 * @param <U>
 				 */
-					private <T, U> DataResult<MemoryEntry<U>> parse(MemoryModuleType<U> memoryType, DynamicOps<T> ops, T value) {
-						return ((DataResult)memoryType.getCodec().map(DataResult::success).orElseGet(() -> DataResult.error(() -> "No codec for memory: " + memoryType)))
-							.flatMap(codec -> codec.parse(ops, value))
-							.map(data -> new MemoryEntry<>(memoryType, Optional.of(data)));
+					@SuppressWarnings({"rawtypes", "unchecked"})
+                    private <T, U> DataResult<MemoryEntry<U>> parse(MemoryModuleType<U> memoryType, DynamicOps<T> ops, T value) {
+						//获取记忆的codec
+						return ((DataResult)memoryType.getCodec()
+								//存在 返回success
+								.map(DataResult::success)
+								//不存在 返回DataResult.error(() -> "No codec for memory: " + memoryType)
+								.orElseGet(() -> DataResult.error(() -> "No codec for memory: " + memoryType)))
+								//codec解析数据 ，返回DataResult<U>
+								.flatMap(codec -> codec.parse(ops, value))
+								//构建，返回
+							    .map(data -> new MemoryEntry<>(memoryType, Optional.of(data)));
 					}
 
 				/**
-				 *
+				 * Brain<E>编码RecordBuilder<T>
 				 * @param brain
 				 * @param dynamicOps
 				 * @param recordBuilder
@@ -223,6 +231,13 @@ public class Brain<E extends LivingEntity> {
 		return mutableObject.getValue();
 	}
 
+	/**
+	 * 初始化生物大脑
+	 * @param memories 记忆模块类型
+	 * @param sensors 传感器类型
+	 * @param memoryEntries 初始的记忆条目
+	 * @param codecSupplier Brain<E>的Codec(编解码器)
+	 */
 	public Brain(
 		Collection<? extends MemoryModuleType<?>> memories,
 		Collection<? extends SensorType<? extends Sensor<? super E>>> sensors,
@@ -231,29 +246,49 @@ public class Brain<E extends LivingEntity> {
 	) {
 		this.codecSupplier = codecSupplier;
 
+		//遍历记忆
 		for (MemoryModuleType<?> memoryModuleType : memories) {
+			//初始化，放进去
 			this.memories.put(memoryModuleType, Optional.empty());
 		}
 
+		//遍历传感器
 		for (SensorType<? extends Sensor<? super E>> sensorType : sensors) {
+			//sensorType.create()创建
+			//放进去
 			this.sensors.put(sensorType, sensorType.create());
 		}
 
+		//处理传感器输出的记忆
 		for (Sensor<? super E> sensor : this.sensors.values()) {
+			//sensor.getOutputMemoryModules()获取记忆类型
 			for (MemoryModuleType<?> memoryModuleType2 : sensor.getOutputMemoryModules()) {
+				//添加，初始化
 				this.memories.put(memoryModuleType2, Optional.empty());
 			}
 		}
 
+		//应用，初始化记忆
 		for (MemoryEntry<?> memoryEntry : memoryEntries) {
+			//遍历后初始化
 			memoryEntry.apply(this);
 		}
 	}
 
+	/**
+	 * 编码
+	 * @param ops DynamicOps<T>->DataResult<T>
+	 * @return
+	 * @param <T>
+	 */
 	public <T> DataResult<T> encode(DynamicOps<T> ops) {
 		return ((Codec)this.codecSupplier.get()).encodeStart(ops, this);
 	}
 
+	/**
+	 * memories转换为Stream MemoryEntry
+	 * @return Stream<MemoryEntry<?>>
+	 */
 	Stream<MemoryEntry<?>> streamMemories() {
 		return this.memories
 			.entrySet()
@@ -261,70 +296,170 @@ public class Brain<E extends LivingEntity> {
 			.map(entry -> MemoryEntry.of((MemoryModuleType)entry.getKey(), (Optional<? extends Memory<?>>)entry.getValue()));
 	}
 
+
+	/**
+	 * 检查某一个记忆是否在有值状态
+	 * @param type 记忆
+	 * @return
+	 */
 	public boolean hasMemoryModule(MemoryModuleType<?> type) {
 		return this.isMemoryInState(type, MemoryModuleState.VALUE_PRESENT);
 	}
 
+	/**
+	 * 所有记忆清空
+	 */
 	public void forgetAll() {
+		//遍历所有key，清空后放回去
 		this.memories.keySet().forEach(type -> this.memories.put(type, Optional.empty()));
 	}
 
+	/**
+	 * 忘记一类的事情
+	 * @param type
+	 * @param <U>
+	 */
 	public <U> void forget(MemoryModuleType<U> type) {
+		//清空放回去
 		this.remember(type, Optional.empty());
 	}
 
+	/**
+	 * 记忆，没有有效期
+	 * @param type 类型
+	 * @param value 内容
+	 * @param <U>
+	 */
 	public <U> void remember(MemoryModuleType<U> type, @Nullable U value) {
 		this.remember(type, Optional.ofNullable(value));
 	}
 
+	/**
+	 * 带有有效期的记忆
+	 * @param type 类型
+	 * @param value 内容
+	 * @param expiry 有效期
+	 * @param <U>
+	 */
 	public <U> void remember(MemoryModuleType<U> type, U value, long expiry) {
 		this.setMemory(type, Optional.of(Memory.timed(value, expiry)));
 	}
 
+	/**
+	 * 记忆
+	 * @param type 类型
+	 * @param value 内容
+	 * @param <U>
+	 */
 	public <U> void remember(MemoryModuleType<U> type, Optional<? extends U> value) {
 		this.setMemory(type, value.map(Memory::permanent));
 	}
 
+	/**
+	 *
+	 * 设置或更新记忆
+	 * @param type
+	 * @param memory
+	 * @param <U>
+	 */
 	<U> void setMemory(MemoryModuleType<U> type, Optional<? extends Memory<?>> memory) {
+		//这个类型存在吗？
 		if (this.memories.containsKey(type)) {
+			//存在 且 为空集合
 			if (memory.isPresent() && this.isEmptyCollection(((Memory)memory.get()).getValue())) {
+				//移除
 				this.forget(type);
 			} else {
+				//放进去
 				this.memories.put(type, memory);
 			}
 		}
 	}
 
+
+	/**
+	 * 获取已经注册的记忆的值
+	 * @param type 类型
+	 * @return Value
+	 * @param <U> U
+	 */
 	public <U> Optional<U> getOptionalRegisteredMemory(MemoryModuleType<U> type) {
+		//通过类型获取
 		Optional<? extends Memory<?>> optional = (Optional<? extends Memory<?>>)this.memories.get(type);
+		//为空吗？
 		if (optional == null) {
+			//空的，报错
 			throw new IllegalStateException("Unregistered memory fetched: " + type);
 		} else {
-			return optional.map(Memory::getValue);
+			//原为:return optional.map(Memory::getValue); 类型不匹配修改
+			//不是空的 输出Value
+			return (Optional<U>) optional.map(Memory::getValue);
 		}
 	}
 
-	@Nullable
+	/**
+	 * 与 getOptionalRegisteredMemory 大致相同，只是此方法对null的处理是直接返回
+	 * @param type 类型
+	 * @return Value
+	 * @param <U>
+	 */
+	@Nullable //可能为null
 	public <U> Optional<U> getOptionalMemory(MemoryModuleType<U> type) {
+		//通过类型获取
 		Optional<? extends Memory<?>> optional = (Optional<? extends Memory<?>>)this.memories.get(type);
+		//是null？直接返回null
+		//不是？返回Value
 		return optional == null ? null : optional.map(Memory::getValue);
 	}
 
+	/**
+	 * 查询记忆的有效期
+	 * @param type 记忆
+	 * @return 有效期
+	 * @param <U> U
+	 */
 	public <U> long getMemoryExpiry(MemoryModuleType<U> type) {
+		//根据类型获取
 		Optional<? extends Memory<?>> optional = (Optional<? extends Memory<?>>)this.memories.get(type);
+		//获取
+		//orElse(0L); 获取不到就返回0
 		return (Long)optional.map(Memory::getExpiry).orElse(0L);
 	}
 
+	/**
+	 * getMemories
+	 * @return Memories
+	 */
 	@Deprecated
 	@Debug
 	public Map<MemoryModuleType<?>, Optional<? extends Memory<?>>> getMemories() {
 		return this.memories;
 	}
 
+	/**
+	 * 检查记忆是否有值，且等于 U value
+	 * @param type 类型
+	 * @param value 信息
+	 * @return 有值吗？
+	 * @param <U>
+	 */
 	public <U> boolean hasMemoryModuleWithValue(MemoryModuleType<U> type, U value) {
-		return !this.hasMemoryModule(type) ? false : this.getOptionalRegisteredMemory(type).filter(memoryValue -> memoryValue.equals(value)).isPresent();
+		//不存在 直接返回false
+		return !this.hasMemoryModule(type) ? false :
+				//获取Value
+				this.getOptionalRegisteredMemory(type).
+						//过滤 =value保留 不等于就舍弃
+						filter(memoryValue -> memoryValue.equals(value)).
+						//检查过滤后的Optional<U>是否包含值 包含=true 不包含=false
+						isPresent();
 	}
 
+	/**
+	 * 这个记忆处在特定的状态吗？
+	 * @param type 记忆模块
+	 * @param state 状态
+	 * @return
+	 */
 	public boolean isMemoryInState(MemoryModuleType<?> type, MemoryModuleState state) {
 		Optional<? extends Memory<?>> optional = (Optional<? extends Memory<?>>)this.memories.get(type);
 		return optional == null
@@ -334,27 +469,48 @@ public class Brain<E extends LivingEntity> {
 				|| state == MemoryModuleState.VALUE_ABSENT && !optional.isPresent();
 	}
 
+	/**
+	 * 获取日程
+	 * @return 日程
+	 */
 	public Schedule getSchedule() {
 		return this.schedule;
 	}
 
+	/**
+	 * 设置日程
+	 * @param schedule 日程
+	 */
 	public void setSchedule(Schedule schedule) {
 		this.schedule = schedule;
 	}
 
+	/**
+	 * 设置核心活动
+	 * @param coreActivities 核心活动集合
+	 */
 	public void setCoreActivities(Set<Activity> coreActivities) {
 		this.coreActivities = coreActivities;
 	}
 
+	/**
+	 * 获取可能的活动
+	 * @return 可能的活动
+	 */
 	@Deprecated
 	@Debug
 	public Set<Activity> getPossibleActivities() {
 		return this.possibleActivities;
 	}
 
+	/**
+	 * 获取正在执行的任务
+	 * @return 任务列表
+	 */
 	@Deprecated
 	@Debug
 	public List<Task<? super E>> getRunningTasks() {
+		//创建列表
 		List<Task<? super E>> list = new ObjectArrayList<>();
 
 		for (Map<Activity, Set<Task<? super E>>> map : this.tasks.values()) {
@@ -370,43 +526,83 @@ public class Brain<E extends LivingEntity> {
 		return list;
 	}
 
+	/**
+	 * resetPossibleActivities,除了IDLE
+	 */
 	public void resetPossibleActivities() {
+		//直接把可能进行的活动
 		this.resetPossibleActivities(this.defaultActivity);
 	}
 
+	/**
+	 * 获取第一个可能的任务，但是不包含核心任务
+	 * @return
+	 */
 	public Optional<Activity> getFirstPossibleNonCoreActivity() {
+		//遍历
 		for (Activity activity : this.possibleActivities) {
+			//检查时候在核心活动中
 			if (!this.coreActivities.contains(activity)) {
+				//不在，返回
 				return Optional.of(activity);
 			}
 		}
 
+		//没找到，返回空的Optional
 		return Optional.empty();
 	}
 
+	/**
+	 * 专注执行某一个activity
+	 * @param activity 活动
+	 */
 	public void doExclusively(Activity activity) {
+		//检查活动是否可以执行
 		if (this.canDoActivity(activity)) {
+			//reset，除了activity
 			this.resetPossibleActivities(activity);
 		} else {
+			//直接reset，除了IDLE
 			this.resetPossibleActivities();
 		}
 	}
 
+	/**
+	 * resetPossibleActivities
+	 * @param except
+	 */
 	private void resetPossibleActivities(Activity except) {
+		//如果包含了except这个活动，就不进行任何操作
 		if (!this.hasActivity(except)) {
+			//不包含
+
+			//移除除了except的其他无用的(需要忘记的)(可擦除的)记忆
 			this.forgetIrrelevantMemories(except);
+			//清除列表
 			this.possibleActivities.clear();
+			//把核心任务添加至列表
 			this.possibleActivities.addAll(this.coreActivities);
+			//把原来排除的也加进去
 			this.possibleActivities.add(except);
 		}
 	}
 
+	/**
+	 * 擦除无关的记忆
+	 * @param except
+	 */
 	private void forgetIrrelevantMemories(Activity except) {
+		//遍历
 		for (Activity activity : this.possibleActivities) {
+			//如果不等于except
 			if (activity != except) {
+				//看看活动是否处于要擦除的记忆的列表里
 				Set<MemoryModuleType<?>> set = (Set<MemoryModuleType<?>>)this.forgettingActivityMemories.get(activity);
+				//找到了
 				if (set != null) {
+					//遍历set中的记忆类型
 					for (MemoryModuleType<?> memoryModuleType : set) {
+						//调用删除
 						this.forget(memoryModuleType);
 					}
 				}
@@ -414,16 +610,32 @@ public class Brain<E extends LivingEntity> {
 		}
 	}
 
+	/**
+	 * 刷新活动
+	 * @param timeOfDay
+	 * @param time 根据用法，传入的大部分是游戏当前时间
+	 */
+	//TODO 意义可能不正确或不明确，建议以后修正
 	public void refreshActivities(long timeOfDay, long time) {
+		//time + 9999 >20 即 距离上次切换活动已经超过 20 个tick
 		if (time - this.activityStartTime > 20L) {
+			//赋值
 			this.activityStartTime = time;
+
+			//timeOfDay % 24000L 计算时间 ，在日程里查找
 			Activity activity = this.getSchedule().getActivityForTime((int)(timeOfDay % 24000L));
+			//possibleActivities里不包含
 			if (!this.possibleActivities.contains(activity)) {
+				//专注执行这个
 				this.doExclusively(activity);
 			}
 		}
 	}
 
+	/**
+	 * resetPossibleActivities，逻辑相同，次方法为重写
+	 * @param activities 活动集合
+	 */
 	public void resetPossibleActivities(List<Activity> activities) {
 		for (Activity activity : activities) {
 			if (this.canDoActivity(activity)) {
@@ -433,24 +645,57 @@ public class Brain<E extends LivingEntity> {
 		}
 	}
 
+	/**
+	 * 设置默认的活动
+	 * @param activity 活动
+	 */
 	public void setDefaultActivity(Activity activity) {
 		this.defaultActivity = activity;
 	}
 
+
+	/**
+	 * setTaskList
+	 * @param activity 活动
+	 * @param begin 起始索引
+	 * @param list task list
+	 */
 	public void setTaskList(Activity activity, int begin, ImmutableList<? extends Task<? super E>> list) {
+		//indexTaskList给任务列表打索引
 		this.setTaskList(activity, this.indexTaskList(begin, list));
 	}
 
+	/**
+	 * setTaskList
+	 * @param activity 活动
+	 * @param begin 起始索引
+	 * @param tasks task list
+	 * @param memoryType 依赖的记忆
+	 */
 	public void setTaskList(Activity activity, int begin, ImmutableList<? extends Task<? super E>> tasks, MemoryModuleType<?> memoryType) {
+		//这个memoryType要存在值
 		Set<Pair<MemoryModuleType<?>, MemoryModuleState>> set = ImmutableSet.of(Pair.of(memoryType, MemoryModuleState.VALUE_PRESENT));
+		//创建一个包含memoryType的不可变集合
 		Set<MemoryModuleType<?>> set2 = ImmutableSet.of(memoryType);
+
 		this.setTaskList(activity, this.indexTaskList(begin, tasks), set, set2);
 	}
 
+	/**
+	 * 接收已编号任务列表
+	 * @param activity 活动
+	 * @param indexedTasks 编号索引的tasks
+	 */
 	public void setTaskList(Activity activity, ImmutableList<? extends Pair<Integer, ? extends Task<? super E>>> indexedTasks) {
 		this.setTaskList(activity, indexedTasks, ImmutableSet.of(), Sets.<MemoryModuleType<?>>newHashSet());
 	}
 
+	/**
+	 * setTaskLis
+	 * @param activity 活动
+	 * @param indexedTasks tasks
+	 * @param requiredMemories 执行前所需要的记忆和状态
+	 */
 	public void setTaskList(
 		Activity activity,
 		ImmutableList<? extends Pair<Integer, ? extends Task<? super E>>> indexedTasks,
@@ -459,32 +704,62 @@ public class Brain<E extends LivingEntity> {
 		this.setTaskList(activity, indexedTasks, requiredMemories, Sets.<MemoryModuleType<?>>newHashSet());
 	}
 
-	public void setTaskList(
+	/**
+	 * 最终的setTaskLis
+	 * @param activity 活动
+	 * @param indexedTasks 编好号的tasks
+	 * @param requiredMemories 执行前所需要的记忆和状态
+	 * @param forgettingMemories 任务结束后要忘记的记忆
+	 */
+	@SuppressWarnings("unchecked")
+    public void setTaskList(
 		Activity activity,
 		ImmutableList<? extends Pair<Integer, ? extends Task<? super E>>> indexedTasks,
 		Set<Pair<MemoryModuleType<?>, MemoryModuleState>> requiredMemories,
 		Set<MemoryModuleType<?>> forgettingMemories
 	) {
+		//把对应任务的条件添加到requiredActivityMemories
 		this.requiredActivityMemories.put(activity, requiredMemories);
+		//如果不为空
 		if (!forgettingMemories.isEmpty()) {
+			//存进去
 			this.forgettingActivityMemories.put(activity, forgettingMemories);
 		}
 
+
 		for (Pair<Integer, ? extends Task<? super E>> pair : indexedTasks) {
-			((Set)((Map)this.tasks.computeIfAbsent(pair.getFirst(), index -> Maps.newHashMap())).computeIfAbsent(activity, activity2 -> Sets.newLinkedHashSet()))
+			//pair.getFirst() 按照任务编号分裂
+			((Set)((Map)this.tasks.computeIfAbsent(pair.getFirst(), index -> Maps.newHashMap())).
+					//按照活动分类
+					computeIfAbsent(activity, activity2
+							//使用newLinkedHashSet按顺序存入任务
+							-> Sets.newLinkedHashSet()))
 				.add(pair.getSecond());
 		}
 	}
 
+	/**
+	 * 清空任务
+	 */
 	@VisibleForTesting
 	public void clear() {
 		this.tasks.clear();
 	}
 
+	/**
+	 * 检查可能活动列表里是否包含指定的
+	 * @param activity 活动
+	 * @return 是否包含
+	 */
 	public boolean hasActivity(Activity activity) {
+		//检查
 		return this.possibleActivities.contains(activity);
 	}
 
+	/**
+	 * 创建copy 只copy记忆和传感器 任务不copy
+	 * @return result
+	 */
 	public Brain<E> copy() {
 		Brain<E> brain = new Brain<>(this.memories.keySet(), this.sensors.keySet(), ImmutableList.of(), this.codecSupplier);
 
@@ -498,40 +773,80 @@ public class Brain<E extends LivingEntity> {
 		return brain;
 	}
 
+	/**
+	 * tick任务
+	 * @param world world
+	 * @param entity entity
+	 */
 	public void tick(ServerWorld world, E entity) {
+		//更新记忆状态
 		this.tickMemories();
+		//更新传感器
 		this.tickSensors(world, entity);
+		//开始任务
 		this.startTasks(world, entity);
+		//更新任务
 		this.updateTasks(world, entity);
 	}
 
+	/**
+	 * 更新传感器
+	 * @param world ServerWorld
+	 * @param entity entity
+	 */
 	private void tickSensors(ServerWorld world, E entity) {
+		//遍历
 		for (Sensor<? super E> sensor : this.sensors.values()) {
 			sensor.tick(world, entity);
 		}
 	}
 
+	/**
+	 * 更新记忆的状态
+	 */
 	private void tickMemories() {
+		//遍历所有记忆的kv
 		for (Entry<MemoryModuleType<?>, Optional<? extends Memory<?>>> entry : this.memories.entrySet()) {
+			//检查value是否为空
 			if (((Optional)entry.getValue()).isPresent()) {
+				//存在值
+
+				//获取记忆的value Memory<?>
 				Memory<?> memory = (Memory<?>)((Optional)entry.getValue()).get();
+				//过期了？
 				if (memory.isExpired()) {
+					//忘记他
 					this.forget((MemoryModuleType)entry.getKey());
 				}
 
+				//没过期，更新即可
 				memory.tick();
 			}
 		}
 	}
 
+	/**
+	 * 停止所有task
+	 * @param world ServerWorld
+	 * @param entity 实体
+	 */
 	public void stopAllTasks(ServerWorld world, E entity) {
+		//获取时间
 		long l = entity.getWorld().getTime();
 
+		//获取所有正在运行的任务
 		for (Task<? super E> task : this.getRunningTasks()) {
+			//stop
 			task.stop(world, entity, l);
 		}
 	}
 
+	/**
+	 * 开始任务
+	 * @param world ServerWorld
+	 * @param entity entity
+	 */
+	//TODO 详细解释
 	private void startTasks(ServerWorld world, E entity) {
 		long l = world.getTime();
 
@@ -549,6 +864,12 @@ public class Brain<E extends LivingEntity> {
 		}
 	}
 
+	/**
+	 * 更新任务
+	 * @param world ServerWorld
+	 * @param entity entity
+	 */
+	//TODO 详细解释
 	private void updateTasks(ServerWorld world, E entity) {
 		long l = world.getTime();
 
@@ -557,14 +878,23 @@ public class Brain<E extends LivingEntity> {
 		}
 	}
 
+
+	/**
+	 * 检查是否可以执行活动
+	 * @param activity 活动
+	 * @return 结果
+	 */
 	private boolean canDoActivity(Activity activity) {
+		//检查是否存在于requiredActivityMemories，不存在直接返回false
 		if (!this.requiredActivityMemories.containsKey(activity)) {
 			return false;
 		} else {
+			//遍历出活动需要的MemoryModuleType<?>:需要什么记忆 MemoryModuleState:这个记忆的状态
 			for (Pair<MemoryModuleType<?>, MemoryModuleState> pair : (Set)this.requiredActivityMemories.get(activity)) {
 				MemoryModuleType<?> memoryModuleType = pair.getFirst();
 				MemoryModuleState memoryModuleState = pair.getSecond();
 				if (!this.isMemoryInState(memoryModuleType, memoryModuleState)) {
+					//不在应该有的状态，返回false
 					return false;
 				}
 			}
@@ -573,13 +903,21 @@ public class Brain<E extends LivingEntity> {
 		}
 	}
 
+	/**
+	 * 检查是否是空集合
+	 * @param value
+	 * @return
+	 */
 	private boolean isEmptyCollection(Object value) {
 		return value instanceof Collection && ((Collection)value).isEmpty();
 	}
 
 	/**
+	 * 打索引
+	 * @param begin 任务索引的开头，独占
 	 * @param begin the beginning of the index of tasks, exclusive
 	 */
+	//TODO 详细解释
 	ImmutableList<? extends Pair<Integer, ? extends Task<? super E>>> indexTaskList(int begin, ImmutableList<? extends Task<? super E>> tasks) {
 		int i = begin;
 		Builder<Pair<Integer, ? extends Task<? super E>>> builder = ImmutableList.builder();
@@ -591,23 +929,43 @@ public class Brain<E extends LivingEntity> {
 		return builder.build();
 	}
 
+	//内部辅助类
 	static final class MemoryEntry<U> {
+		//记忆类型
 		private final MemoryModuleType<U> type;
+		//记忆数据
 		private final Optional<? extends Memory<U>> data;
 
+		/**
+		 * 创建MemoryEntry
+		 * @param type 类型
+		 * @param data 数据
+		 * @return result
+		 * @param <U>
+		 */
 		static <U> MemoryEntry<U> of(MemoryModuleType<U> type, Optional<? extends Memory<?>> data) {
 			return new MemoryEntry<>(type, (Optional<? extends Memory<U>>)data);
 		}
 
+		/**
+		 * 构造函数
+		 * @param type
+		 * @param data
+		 */
 		MemoryEntry(MemoryModuleType<U> type, Optional<? extends Memory<U>> data) {
 			this.type = type;
 			this.data = data;
 		}
 
+		/**
+		 * 设置，更新记忆
+		 * @param brain 大脑
+		 */
 		void apply(Brain<?> brain) {
 			brain.setMemory(this.type, this.data);
 		}
 
+		//持久化
 		public <T> void serialize(DynamicOps<T> ops, RecordBuilder<T> builder) {
 			this.type
 				.getCodec()
@@ -620,6 +978,7 @@ public class Brain<E extends LivingEntity> {
 	/**
 	 * A simple profile of a brain. Indicates what types of memory modules and
 	 * sensors a brain can have.
+	 * 大脑的简单轮廓。指示内存模块的类型，以及大脑可以拥有的传感器。
 	 */
 	public static final class Profile<E extends LivingEntity> {
 		private final Collection<? extends MemoryModuleType<?>> memoryModules;
