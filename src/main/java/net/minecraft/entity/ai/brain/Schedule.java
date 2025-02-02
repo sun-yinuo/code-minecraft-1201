@@ -9,11 +9,17 @@ import java.util.stream.Collectors;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 
+//事务基类
 public class Schedule {
 	public static final int WORK_TIME = 2000;
 	public static final int field_30693 = 7000;
+
+	//闲置状态
 	public static final Schedule EMPTY = register("empty").withActivity(0, Activity.IDLE).build();
+
 	public static final Schedule SIMPLE = register("simple").withActivity(5000, Activity.WORK).withActivity(11000, Activity.REST).build();
+
+	//村民宝宝一天的生活
 	public static final Schedule VILLAGER_BABY = register("villager_baby")
 		.withActivity(10, Activity.IDLE)
 		.withActivity(3000, Activity.PLAY)
@@ -21,6 +27,7 @@ public class Schedule {
 		.withActivity(10000, Activity.PLAY)
 		.withActivity(12000, Activity.REST)
 		.build();
+	//正常村民的生活
 	public static final Schedule VILLAGER_DEFAULT = register("villager_default")
 		.withActivity(10, Activity.IDLE)
 		.withActivity(2000, Activity.WORK)
@@ -28,7 +35,9 @@ public class Schedule {
 		.withActivity(11000, Activity.IDLE)
 		.withActivity(12000, Activity.REST)
 		.build();
+	//日程规则
 	private final Map<Activity, ScheduleRule> scheduleRules = Maps.<Activity, ScheduleRule>newHashMap();
+
 
 	protected static ScheduleBuilder register(String id) {
 		Schedule schedule = Registry.register(Registries.SCHEDULE, id, new Schedule());
@@ -49,12 +58,19 @@ public class Schedule {
 		return (List<ScheduleRule>)this.scheduleRules.entrySet().stream().filter(rule -> rule.getKey() != activity).map(Entry::getValue).collect(Collectors.toList());
 	}
 
+
+	/**
+	 * 根据时间time 从scheduleRules中获取最高优先级活动并返回
+	 * @param time
+	 * @return
+	 */
 	public Activity getActivityForTime(int time) {
 		return (Activity)this.scheduleRules
 			.entrySet()
 			.stream()
 			.max(Comparator.comparingDouble(rule -> (double)((ScheduleRule)rule.getValue()).getPriority(time)))
 			.map(Entry::getKey)
+			//找不到，返回IDLE
 			.orElse(Activity.IDLE);
 	}
 }
