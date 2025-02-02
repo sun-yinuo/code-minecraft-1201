@@ -45,7 +45,7 @@ public class BlockPosLookTarget implements LookTarget {
 	}
 
 	/**
-	 * 被看到？意义不明
+	 * 是否被看到
 	 * @param entity entity
 	 * @return boolean
 	 */
