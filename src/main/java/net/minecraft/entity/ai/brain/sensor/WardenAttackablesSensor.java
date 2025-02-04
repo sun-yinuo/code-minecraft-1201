@@ -13,6 +13,8 @@ import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.mob.WardenEntity;
 import net.minecraft.server.world.ServerWorld;
 
+//Warden（坚守者）攻击目标
+//最近的可攻击对象
 public class WardenAttackablesSensor extends NearestLivingEntitiesSensor<WardenEntity> {
 	@Override
 	public Set<MemoryModuleType<?>> getOutputMemoryModules() {

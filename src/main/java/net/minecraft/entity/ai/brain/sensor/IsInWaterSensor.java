@@ -7,6 +7,8 @@ import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Unit;
 
+//是否在水里
+//IS_IN_WATER
 public class IsInWaterSensor extends Sensor<LivingEntity> {
 	@Override
 	public Set<MemoryModuleType<?>> getOutputMemoryModules() {

@@ -13,6 +13,10 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.predicate.entity.EntityPredicates;
 import net.minecraft.server.world.ServerWorld;
 
+//最近玩家
+//影响NEAREST_PLAYERS,
+// NEAREST_VISIBLE_PLAYER,
+// NEAREST_VISIBLE_TARGETABLE_PLAYER
 public class NearestPlayersSensor extends Sensor<LivingEntity> {
 	@Override
 	public Set<MemoryModuleType<?>> getOutputMemoryModules() {
@@ -23,15 +27,21 @@ public class NearestPlayersSensor extends Sensor<LivingEntity> {
 	protected void sense(ServerWorld world, LivingEntity entity) {
 		List<PlayerEntity> list = (List<PlayerEntity>)world.getPlayers()
 			.stream()
+
 			.filter(EntityPredicates.EXCEPT_SPECTATOR)
 			.filter(player -> entity.isInRange(player, 16.0))
 			.sorted(Comparator.comparingDouble(entity::squaredDistanceTo))
 			.collect(Collectors.toList());
 		Brain<?> brain = entity.getBrain();
+		//直接添加
 		brain.remember(MemoryModuleType.NEAREST_PLAYERS, list);
 		List<PlayerEntity> list2 = (List<PlayerEntity>)list.stream().filter(player -> testTargetPredicate(entity, player)).collect(Collectors.toList());
+
+		//过滤可见玩家后添加
 		brain.remember(MemoryModuleType.NEAREST_VISIBLE_PLAYER, list2.isEmpty() ? null : (PlayerEntity)list2.get(0));
+
 		Optional<PlayerEntity> optional = list2.stream().filter(player -> testAttackableTargetPredicate(entity, player)).findFirst();
+		//进行是否可以攻击后添加
 		brain.remember(MemoryModuleType.NEAREST_VISIBLE_TARGETABLE_PLAYER, optional);
 	}
 }

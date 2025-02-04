@@ -6,6 +6,7 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.server.world.ServerWorld;
 
+//占位
 public class DummySensor extends Sensor<LivingEntity> {
 	@Override
 	protected void sense(ServerWorld world, LivingEntity entity) {

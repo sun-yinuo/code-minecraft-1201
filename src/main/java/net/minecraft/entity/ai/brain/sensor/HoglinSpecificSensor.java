@@ -15,6 +15,7 @@ import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 
+//疣猪兽相关的特定事件
 public class HoglinSpecificSensor extends Sensor<HoglinEntity> {
 	@Override
 	public Set<MemoryModuleType<?>> getOutputMemoryModules() {

@@ -10,6 +10,8 @@ import net.minecraft.entity.ai.brain.LivingTargetCache;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.server.world.ServerWorld;
 
+//附近村民宝宝传感器
+//影响VISIBLE_VILLAGER_BABIES记忆
 public class VillagerBabiesSensor extends Sensor<LivingEntity> {
 	@Override
 	public Set<MemoryModuleType<?>> getOutputMemoryModules() {

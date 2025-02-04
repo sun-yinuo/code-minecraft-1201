@@ -9,6 +9,8 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.server.world.ServerWorld;
 
+//最近的铁傀儡
+//形象GOLEM_DETECTED_RECENTLY记忆
 public class GolemLastSeenSensor extends Sensor<LivingEntity> {
 	private static final int RUN_TIME = 200;
 	private static final int GOLEM_DETECTED_WARMUP = 600;

@@ -13,6 +13,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.GlobalPos;
 import net.minecraft.world.World;
 
+//次要兴趣点传感器,看起来直接影响第二工作方块记忆
+//影响SECONDARY_JOB_SITE记忆
 public class SecondaryPointsOfInterestSensor extends Sensor<VillagerEntity> {
 	private static final int RUN_TIME = 40;
 

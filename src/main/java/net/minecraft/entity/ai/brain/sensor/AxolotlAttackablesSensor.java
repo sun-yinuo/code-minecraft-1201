@@ -4,6 +4,8 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.registry.tag.EntityTypeTags;
 
+//Axolotl（美西螈）能够攻击的目标传感器
+//影响NEAREST_ATTACKABLE
 public class AxolotlAttackablesSensor extends NearestVisibleLivingEntitySensor {
 	public static final float TARGET_RANGE = 8.0F;
 

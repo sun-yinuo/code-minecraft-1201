@@ -19,6 +19,8 @@ import net.minecraft.world.poi.PointOfInterestStorage;
 import net.minecraft.world.poi.PointOfInterestType;
 import net.minecraft.world.poi.PointOfInterestTypes;
 
+//最近的床
+//影响NEAREST_BED记忆
 public class NearestBedSensor extends Sensor<MobEntity> {
 	private static final int REMEMBER_TIME = 40;
 	private static final int MAX_TRIES = 5;

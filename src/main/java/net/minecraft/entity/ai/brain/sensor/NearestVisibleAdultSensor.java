@@ -8,6 +8,8 @@ import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.passive.PassiveEntity;
 import net.minecraft.server.world.ServerWorld;
 
+//最近可见的成年实体
+//影响NEAREST_VISIBLE_ADULT，VISIBLE_MOBS
 public class NearestVisibleAdultSensor extends Sensor<PassiveEntity> {
 	@Override
 	public Set<MemoryModuleType<?>> getOutputMemoryModules() {

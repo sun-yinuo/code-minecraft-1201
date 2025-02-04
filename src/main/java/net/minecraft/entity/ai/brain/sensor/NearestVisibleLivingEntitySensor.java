@@ -8,6 +8,8 @@ import net.minecraft.entity.ai.brain.LivingTargetCache;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.server.world.ServerWorld;
 
+//最近可见生命实体传感器
+//abstract class
 public abstract class NearestVisibleLivingEntitySensor extends Sensor<LivingEntity> {
 	protected abstract boolean matches(LivingEntity entity, LivingEntity target);
 

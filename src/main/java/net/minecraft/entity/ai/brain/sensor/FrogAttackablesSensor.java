@@ -7,6 +7,8 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.passive.FrogEntity;
 
+//Frog 可以攻击的目标传感器
+//影响NEAREST_ATTACKABLE
 public class FrogAttackablesSensor extends NearestVisibleLivingEntitySensor {
 	public static final float RANGE = 10.0F;
 

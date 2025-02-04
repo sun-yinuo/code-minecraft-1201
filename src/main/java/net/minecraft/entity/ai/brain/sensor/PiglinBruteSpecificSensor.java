@@ -16,6 +16,11 @@ import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.mob.WitherSkeletonEntity;
 import net.minecraft.server.world.ServerWorld;
 
+//猪灵蛮兵相关的特定事件
+//影响
+//VISIBLE_MOBS
+//NEAREST_VISIBLE_NEMESIS
+//NEARBY_ADULT_PIGLINS
 public class PiglinBruteSpecificSensor extends Sensor<LivingEntity> {
 	@Override
 	public Set<MemoryModuleType<?>> getOutputMemoryModules() {

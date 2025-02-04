@@ -5,6 +5,8 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 
+//村民附近敌对生物传感器
+//影响NEAREST_HOSTILE记忆
 public class VillagerHostilesSensor extends NearestVisibleLivingEntitySensor {
 	private static final ImmutableMap<EntityType<?>, Float> SQUARED_DISTANCES_FOR_DANGER = ImmutableMap.<EntityType<?>, Float>builder()
 		.put(EntityType.DROWNED, 8.0F)
